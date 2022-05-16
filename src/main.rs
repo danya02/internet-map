@@ -1,44 +1,29 @@
 mod ping_state;
 mod pinger;
+mod host_state_database;
+mod ping_job;
 
 extern crate pretty_env_logger;
 #[macro_use]
 extern crate log;
 
+use std::net::Ipv4Addr;
+use std::path::PathBuf;
+
 use fastping_rs::PingResult::{Idle, Receive};
 use fastping_rs::Pinger;
+use ping_state::{BinaryPingState, PingState};
+use crate::host_state_database::Level2HostStateDatabase;
 
 fn main() {
     pretty_env_logger::init();
-    let (pinger, results) = match Pinger::new(None, Some(56)) {
-        Ok((pinger, results)) => (pinger, results),
-        Err(e) => panic!(
-            "Error creating pinger: {}\n\n\
-            Most likely this is because raw sockets are not allowed. Try: \n\
-              sudo setcap cap_net_raw=eip <path-to-executable>\n\
-            or run a shell that gives its children the raw socket capability with:\
-              sudo -E capsh --keep=1 --user=$USER --inh=cap_net_raw --addamb=cap_net_raw --user=$USER --", e),
-    };
 
-    pinger.add_ipaddr("8.8.8.8");
-    pinger.add_ipaddr("1.1.1.1");
-    pinger.add_ipaddr("7.7.7.7");
-    pinger.add_ipaddr("2001:4860:4860::8888");
-    pinger.ping_once();
-    let mut remaining = 4;
 
-    while remaining > 0 {
-        remaining -= 1;
-        match results.recv() {
-            Ok(result) => match result {
-                Idle { addr } => {
-                    error!("Idle Address {}.", addr);
-                }
-                Receive { addr, rtt } => {
-                    error!("Receive from Address {} in {:?}.", addr, rtt);
-                }
-            },
-            Err(_) => panic!("Worker threads disconnected before the solution was found!"),
-        }
-    }
+    let mut db = Level2HostStateDatabase { db_path: PathBuf::from("./data/"), record_bit_size: BinaryPingState::bit_size() as u64 };
+
+    let start = Ipv4Addr::new(10, 1, 0, 1).into();
+    let end = Ipv4Addr::new(10, 1, 16, 255).into();
+
+    ping_job::ping_and_save_range(&mut db, start, end);
+
 }

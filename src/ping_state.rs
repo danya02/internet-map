@@ -32,6 +32,9 @@ pub trait PingState: Sized {
     /// from the first ping state in the file.
     fn read_from<R: std::io::Read + std::io::Seek>(reader: &mut R, offset: usize) -> std::io::Result<Self>;
 
+    /// Returns the number of bits that this state occupies in the file.
+    fn bit_size() -> usize;
+
 }
 
 /// The most general ping state, containing all possible data values for the state.
@@ -60,7 +63,7 @@ impl From<BinaryPingState> for GeneralPingState {
 /// A ping state that stores a single bit to indicate whether the machine is (up) or (down or not tested).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BinaryPingState(bool);
-impl BinaryPingState {
+impl PingState for BinaryPingState {
     /// Return if the machine at this address is up.
     /// The single bit contained in this state directly indicates the answer.
     fn is_up(&self) -> bool {
@@ -118,6 +121,17 @@ impl BinaryPingState {
         // write the new byte
         writer.seek(std::io::SeekFrom::Start(byte_offset as u64))?;
         writer.write_all(&buf)
+    }
+
+    fn bit_size() -> usize {
+        1
+    }
+
+}
+
+impl From<GeneralPingState> for BinaryPingState {
+    fn from(state: GeneralPingState) -> Self {
+        BinaryPingState(state.is_up)
     }
 }
 
@@ -192,7 +206,7 @@ mod tests {
         }
 
         assert_eq!(actual_values, expected_values);
-
     }
+
 }
 

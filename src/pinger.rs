@@ -6,7 +6,8 @@ use crate::ping_state::GeneralPingState;
 
 const MAX_RTT: Duration = Duration::from_secs(4);
 
-fn ping_list_of_hosts(hosts: &[IpAddr]) -> Vec<(IpAddr, GeneralPingState)> {
+pub fn ping_list_of_hosts(hosts: &[IpAddr]) -> Vec<(IpAddr, GeneralPingState)> {
+    trace!("Initializing pinger");
     let (pinger, results) = match Pinger::new(Some(MAX_RTT.as_millis().try_into().unwrap()), Some(56)) {
         Ok((pinger, results)) => (pinger, results),
         Err(e) => panic!(
@@ -17,6 +18,7 @@ fn ping_list_of_hosts(hosts: &[IpAddr]) -> Vec<(IpAddr, GeneralPingState)> {
               sudo -E capsh --keep=1 --user=$USER --inh=cap_net_raw --addamb=cap_net_raw --user=$USER --", e),
     };
     let mut remaining = hosts.len();
+    trace!("Adding {} hosts to pinger", remaining);
     for host in hosts {
         pinger.add_ipaddr(host.to_string().as_str());
     }
@@ -25,12 +27,15 @@ fn ping_list_of_hosts(hosts: &[IpAddr]) -> Vec<(IpAddr, GeneralPingState)> {
 
     while remaining > 0 {
         remaining -= 1;
+        trace!("{} hosts remaining", remaining);
         match results.recv() {
             Ok(result) => match result {
                 fastping_rs::PingResult::Idle { addr } => {
+                    debug!("Ping to {} timed out", addr);
                     ping_results.push((addr, GeneralPingState{ is_up: false, is_tested: true, time_taken: MAX_RTT }));
                 }
                 fastping_rs::PingResult::Receive { addr, rtt } => {
+                    debug!("Ping to {} returned in {} ms", addr, rtt.as_millis());
                     ping_results.push((addr, GeneralPingState {is_up: true, is_tested: true, time_taken: rtt} ));
                 }
             },
