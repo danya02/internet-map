@@ -21,9 +21,13 @@ fn main() {
 
     let mut db = Level2HostStateDatabase { db_path: PathBuf::from("./data/"), record_bit_size: BinaryPingState::bit_size() as u64 };
 
-    let start = Ipv4Addr::new(10, 1, 0, 1).into();
-    let end = Ipv4Addr::new(10, 1, 16, 255).into();
+    for part_2 in 0..=255 {
+        for part_3 in 0..=127 {
+            let start = Ipv4Addr::new(127, part_2, 2*part_3, 1).into();
+            let end = Ipv4Addr::new(127, part_2, 2*part_3+1, 255).into();
+            ping_job::ping_and_save_range(&mut db, start, end);
+        }
+    }
 
-    ping_job::ping_and_save_range(&mut db, start, end);
 
 }

@@ -35,6 +35,8 @@ pub trait PingState: Sized {
     /// Returns the number of bits that this state occupies in the file.
     fn bit_size() -> usize;
 
+    // TODO: add TTL field
+
 }
 
 /// The most general ping state, containing all possible data values for the state.

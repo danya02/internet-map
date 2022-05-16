@@ -4,7 +4,7 @@ use fastping_rs::Pinger;
 
 use crate::ping_state::GeneralPingState;
 
-const MAX_RTT: Duration = Duration::from_secs(4);
+const MAX_RTT: Duration = Duration::from_millis(250);
 
 pub fn ping_list_of_hosts(hosts: &[IpAddr]) -> Vec<(IpAddr, GeneralPingState)> {
     trace!("Initializing pinger");
