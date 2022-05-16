@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 /// Trait for all the representations of the ping state.
 pub trait PingState: Sized {
     /// Does this state indicate that the machine at this address is up?
@@ -31,6 +33,29 @@ pub trait PingState: Sized {
     fn read_from<R: std::io::Read + std::io::Seek>(reader: &mut R, offset: usize) -> std::io::Result<Self>;
 
 }
+
+/// The most general ping state, containing all possible data values for the state.
+/// 
+/// This exists to allow transformations between different representations of the ping state.
+pub struct GeneralPingState {
+    /// Is this host up?
+    pub is_up: bool,
+    /// Was this host tested?
+    pub is_tested: bool,
+    /// How long did the ping take?
+    pub time_taken: Duration,
+}
+
+impl From<BinaryPingState> for GeneralPingState {
+    fn from(state: BinaryPingState) -> Self {
+        GeneralPingState {
+            is_up: state.0,
+            is_tested: state.0,
+            time_taken: Duration::MAX,
+        }
+    }
+}
+
 
 /// A ping state that stores a single bit to indicate whether the machine is (up) or (down or not tested).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -169,5 +194,5 @@ mod tests {
         assert_eq!(actual_values, expected_values);
 
     }
-
 }
+
